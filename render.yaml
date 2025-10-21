@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: auth-service
+    runtime: node
+    rootDir: service-auth
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false   # la pones en el panel (Render Postgres URL)
+  - type: web
+    name: sensors-service
+    runtime: node
+    rootDir: service-sensors
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+  - type: web
+    name: ingest-service
+    runtime: node
+    rootDir: service-ingest
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URL
+        sync: false   # la pones en el panel (Mongo Atlas URI)
+  - type: web
+    name: parcels-service
+    runtime: node
+    rootDir: service-parcels
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
