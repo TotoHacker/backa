@@ -1,0 +1,11 @@
+{
+  "name": "parcelas-devops",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "scripts": {
+    "start:all": "concurrently \"npm start --prefix service-auth\" \"npm start --prefix service-sensors\" \"npm start --prefix service-ingest\" \"npm start --prefix service-parcels\""
+  }
+}

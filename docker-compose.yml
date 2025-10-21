@@ -1,0 +1,110 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: pg-parcelas
+    restart: always
+    environment:
+      POSTGRES_USER: devops
+      POSTGRES_PASSWORD: devops123
+      POSTGRES_DB: parcelas_db
+    ports:
+      - "5432:5432"               # opcional para acceso desde host
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d   # <-- corrige la indentación
+    networks:
+      - devops-net                               # <-- únete a la red
+    healthcheck:                                 # <-- espera a que esté READY
+      test: ["CMD-SHELL", "pg_isready -U devops -d parcelas_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    container_name: mongo-sensors
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+      - ./init-mongo:/docker-entrypoint-initdb.d
+    networks:
+      - devops-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  service-auth:
+    build:
+      context: ./service-auth
+      dockerfile: Dockerfile
+    container_name: auth-service
+    restart: always
+    ports:
+      - "4001:4001"
+    depends_on:
+      postgres:
+        condition: service_healthy           # <-- espera readiness real
+    environment:
+      DATABASE_URL: postgres://devops:devops123@postgres:5432/parcelas_db
+      # TIP opcional: fuerza el host por si acaso
+      PGHOST: postgres
+    networks:
+      - devops-net
+
+  service-sensors:
+    build:
+      context: ./service-sensors
+      dockerfile: Dockerfile
+    container_name: sensors-service
+    restart: always
+    ports:
+      - "4002:4002"
+    networks:
+      - devops-net
+
+  service-ingest:
+    build:
+      context: ./service-ingest
+      dockerfile: Dockerfile
+    container_name: ingest-service
+    restart: always
+    ports:
+      - "4003:4003"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      service-sensors:
+        condition: service_started
+    environment:
+      MONGO_URL: mongodb://mongo:27017/sensors
+    networks:
+      - devops-net
+
+  service-parcels:
+    build: 
+      context: ./service-parcels
+      dockerfile: Dockerfile
+    container_name: parcels-service
+    restart: always
+    ports:
+      - "4004:4004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://devops:devops123@postgres:5432/parcelas_db
+      PGHOST: postgres
+    networks:
+      - devops-net
+
+networks:
+  devops-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  mongodata:
